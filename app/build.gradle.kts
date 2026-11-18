@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.shaytan.motawer"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.shaytan.motawer"
