@@ -1,7 +1,5 @@
-
 package com.shaytan.motawer
 
-import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,9 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.MediaItem
+import androidx.media3.ui.PlayerView
 
 private val Background = Color(0xFF080808)
 private val CardColor = Color(0xFF171717)
@@ -51,15 +54,33 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun EditorHome() {
+    val context = LocalContext.current
+
     var selectedVideo by remember { mutableStateOf<Uri?>(null) }
     var message by remember { mutableStateOf("مرحباً بك في مطور شيطان") }
 
     val videoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        selectedVideo = uri
         if (uri != null) {
+            selectedVideo = uri
             message = "تم اختيار الفيديو بنجاح"
+        }
+    }
+
+    val player = remember(selectedVideo) {
+        selectedVideo?.let { uri ->
+            ExoPlayer.Builder(context).build().apply {
+                setMediaItem(MediaItem.fromUri(uri))
+                prepare()
+                playWhenReady = false
+            }
+        }
+    }
+
+    DisposableEffect(player) {
+        onDispose {
+            player?.release()
         }
     }
 
@@ -105,33 +126,64 @@ fun EditorHome() {
 
             Spacer(Modifier.height(28.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(190.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF252525), Color(0xFF101010))
-                        ),
-                        RoundedCornerShape(22.dp)
-                    )
-                    .border(1.dp, Color(0xFF393939), RoundedCornerShape(22.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🎬", fontSize = 52.sp)
-                    Spacer(Modifier.height(10.dp))
+            if (player != null) {
+                Column {
                     Text(
-                        "استوديو تحرير الفيديو",
+                        "معاينة الفيديو",
                         color = White,
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(
-                        "اصنع فيديوهاتك بإبداع",
-                        color = Gray,
-                        fontSize = 13.sp
+
+                    Spacer(Modifier.height(10.dp))
+
+                    AndroidView(
+                        factory = { viewContext ->
+                            PlayerView(viewContext).apply {
+                                this.player = player
+                                useController = true
+                            }
+                        },
+                        update = { it.player = player },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(230.dp)
+                            .background(Color.Black, RoundedCornerShape(18.dp))
                     )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(190.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF252525), Color(0xFF101010))
+                            ),
+                            RoundedCornerShape(22.dp)
+                        )
+                        .border(
+                            1.dp,
+                            Color(0xFF393939),
+                            RoundedCornerShape(22.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("🎬", fontSize = 52.sp)
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            "استوديو تحرير الفيديو",
+                            color = White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "اختر فيديو لبدء العمل عليه",
+                            color = Gray,
+                            fontSize = 13.sp
+                        )
+                    }
                 }
             }
 
@@ -147,19 +199,11 @@ fun EditorHome() {
             Spacer(Modifier.height(14.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ToolCard(
-                    icon = "🎬",
-                    title = "الفيديو",
-                    subtitle = "اختيار فيديو"
-                ) {
+                ToolCard("🎬", "الفيديو", "اختيار فيديو") {
                     videoPicker.launch("video/*")
                 }
 
-                ToolCard(
-                    icon = "✨",
-                    title = "التأثيرات",
-                    subtitle = "الفلاتر والحركات"
-                ) {
+                ToolCard("✨", "التأثيرات", "الفلاتر والحركات") {
                     message = "قسم التأثيرات قيد التطوير"
                 }
             }
@@ -167,34 +211,16 @@ fun EditorHome() {
             Spacer(Modifier.height(12.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ToolCard(
-                    icon = "🎨",
-                    title = "الألوان",
-                    subtitle = "تعديل الألوان"
-                ) {
+                ToolCard("🎨", "الألوان", "تعديل الألوان") {
                     message = "قسم الألوان قيد التطوير"
                 }
 
-                ToolCard(
-                    icon = "🎵",
-                    title = "الصوت",
-                    subtitle = "الموسيقى"
-                ) {
+                ToolCard("🎵", "الصوت", "الموسيقى") {
                     message = "قسم الصوت قيد التطوير"
                 }
             }
 
             Spacer(Modifier.height(22.dp))
-
-            if (selectedVideo != null) {
-                Text(
-                    "تم اختيار الفيديو",
-                    color = Accent,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(10.dp))
-            }
 
             Button(
                 onClick = { videoPicker.launch("video/*") },
@@ -260,4 +286,3 @@ fun RowScope.ToolCard(
         )
     }
 }
-
